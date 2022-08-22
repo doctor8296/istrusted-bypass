@@ -27,9 +27,7 @@ Node.prototype.dispatchEvent = new Proxy(Node.prototype.dispatchEvent, {
 
 function eventToObject(event) {
     const object = {};
-    for (const property in event) {
-        object[property] = event[property];
-    }
+    for (const property in event) object[property] = event[property];
     object.isTrusted = true;
     return object;
 }
