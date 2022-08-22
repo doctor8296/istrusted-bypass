@@ -1,13 +1,13 @@
-const listenersSymbol = Symbol('listeners');
+const s = Symbol('listeners');
 
 Node.prototype.addEventListener = new Proxy(Node.prototype.addEventListener, {
     apply(target, thisArg, args) {
-        thisArg[listenersSymbol] = thisArg[listenersSymbol] || {};
+        thisArg[s] = thisArg[s] || {};
 
-        if (args[0] in thisArg[listenersSymbol]) {
-            thisArg[listenersSymbol][args[0]].push(args[1]);
+        if (args[0] in thisArg[s]) {
+            thisArg[s][args[0]].push(args[1]);
         } else {
-            thisArg[listenersSymbol][args[0]] = [args[1]];
+            thisArg[s][args[0]] = [args[1]];
         }
 
         return Reflect.apply(...arguments);
@@ -16,7 +16,7 @@ Node.prototype.addEventListener = new Proxy(Node.prototype.addEventListener, {
 
 Node.prototype.dispatchEvent = new Proxy(Node.prototype.dispatchEvent, {
     apply(target, thisArg, args) {
-        const listeners = thisArg[listenersSymbol][args[0].type];
+        const listeners = thisArg[s][args[0].type];
         if (listeners) {
             for (const listener of listeners) {
                 listener(eventToObject(args[0]));
