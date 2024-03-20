@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <script src="isTrusted.js"></script>
+    <button id="tested">PROTECTED BUTTON</button>
+    <button id="trigger">TRIGGER NOT TRUSTED EVENT</button>
+    <script>
+      const testedButton = document.getElementById("tested");
+      testedButton.addEventListener("click", (event) => {
+        console.log(`event isTrusted: ${event.isTrusted}`);
+      });
+
+      const triggerButton = document.getElementById("trigger");
+      triggerButton.addEventListener("click", () => {
+        testedButton.dispatchEvent(new MouseEvent("click"));
+      });
+    </script>
+  </body>
+</html>
