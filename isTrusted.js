@@ -1,9 +1,11 @@
 (() => {
   const secretProperty = Symbol("listeners");
+
   EventTarget.prototype.addEventListener = new Proxy(
     EventTarget.prototype.addEventListener,
     {
-      apply(target, thisArg, [eventName, callbackFunction, options]) {
+      apply(_target, thisArg, [eventName, callbackFunction, _options]) {
+        thisArg = thisArg ?? window;
         if (secretProperty in thisArg) {
           if (eventName in thisArg[secretProperty]) {
             thisArg[secretProperty][eventName].add(callbackFunction);
@@ -23,19 +25,24 @@
   EventTarget.prototype.removeEventListener = new Proxy(
     EventTarget.prototype.removeEventListener,
     {
-      apply(target, thisArg, [eventName, callbackFunction]) {
-        if (secretProperty in thisArg) {
-          if (eventName in thisArg[secretProperty]) {
-            if (thisArg[secretProperty][eventName].has(callbackFunction)) {
-              thisArg[secretProperty][eventName].delete(callbackFunction);
-              if (thisArg[secretProperty][eventName].size === 0) {
-                delete thisArg[secretProperty][eventName];
-                if (Object.keys(thisArg[secretProperty]).length === 0) {
-                  delete thisArg[secretProperty];
-                }
-              }
-            }
-          }
+      apply(_target, thisArg, [eventName, callbackFunction]) {
+        thisArg = thisArg ?? window;
+        if (!(secretProperty in thisArg)) {
+          return;
+        }
+        if (!(eventName in thisArg[secretProperty])) {
+          return;
+        }
+        if (!thisArg[secretProperty][eventName].has(callbackFunction)) {
+          return;
+        }
+        thisArg[secretProperty][eventName].delete(callbackFunction);
+        if (thisArg[secretProperty][eventName].size !== 0) {
+          return;
+        }
+        delete thisArg[secretProperty][eventName];
+        if (Object.keys(thisArg[secretProperty]).length === 0) {
+          delete thisArg[secretProperty];
         }
         return Reflect.apply(...arguments);
       },
@@ -45,25 +52,27 @@
   EventTarget.prototype.dispatchEvent = new Proxy(
     EventTarget.prototype.dispatchEvent,
     {
-      apply(target, thisArg, [event]) {
+      apply(_target, thisArg, [event]) {
+        thisArg = thisArg ?? window;
         if (!(secretProperty in thisArg)) {
           return Reflect.apply(...arguments);
         }
-        if (event.type in thisArg[secretProperty]) {
-          for (const callbackFunction of [
-            ...thisArg[secretProperty][event.type],
-          ]) {
-            callbackFunction(
-              new Proxy(event, {
-                get(target, prop) {
-                  if (prop === "isTrusted") {
-                    return true;
-                  }
-                  return target[prop];
-                },
-              })
-            );
-          }
+        if (!(event.type in thisArg[secretProperty])) {
+          return;
+        }
+        for (const callbackFunction of [
+          ...thisArg[secretProperty][event.type],
+        ]) {
+          callbackFunction(
+            new Proxy(event, {
+              get(target, prop) {
+                if (prop === "isTrusted") {
+                  return true;
+                }
+                return target[prop];
+              },
+            })
+          );
         }
       },
     }
